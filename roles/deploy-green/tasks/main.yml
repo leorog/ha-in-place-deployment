@@ -1,0 +1,28 @@
+---
+- name: start green server
+  systemd:
+    scope: user
+    name: simple-http@3001
+    state: started
+
+- name: enabling green backend
+  haproxy:
+    state: enabled
+    host: green
+    socket: "{{ admin_sock }}"
+    backend: "{{ backend }}"
+    wait: yes
+
+- name: disabling blue backend
+  haproxy:
+    state: disabled
+    host: blue
+    socket: "{{ admin_sock }}"
+    backend: "{{ backend }}"
+    wait: yes
+
+- name: stop blue server
+  systemd:
+    scope: user
+    name: simple-http@3000
+    state: stopped

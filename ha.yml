@@ -1,0 +1,29 @@
+---
+# https://cbonte.github.io/haproxy-dconv/1.8/management.html#9.3-show%20servers%20state
+- hosts: 127.0.0.1
+  vars:
+    admin_sock: /tmp/haproxy.sock
+    backend: default
+  pre_tasks:
+    - name: Read haproxy state from admin socket
+      shell: echo "show servers state {{ backend }}" | socat "{{ admin_sock }}" stdio | tail -n3 > "/tmp/{{backend}}-csv"
+    - name: Parse haproxy state csv to ansible dict
+      read_csv:
+        delimiter: " "
+        path: "/tmp/{{backend}}-csv"
+        key: srv_name
+        fieldnames: be_id,be_name,srv_id,srv_name,srv_addr,srv_op_state,srv_admin_state
+      register: haproxy
+    - debug:
+        msg: 'Blue state: {{ haproxy.dict.blue.srv_op_state }}'
+    - debug:
+        msg: 'Green state: {{ haproxy.dict.green.srv_op_state }}'
+  roles:
+    - role: deploy-green
+      when: haproxy.dict.green.srv_op_state == "0" and haproxy.dict.blue.srv_op_state == "2"
+    - role: deploy-blue
+      when: haproxy.dict.blue.srv_op_state == "0" and haproxy.dict.green.srv_op_state == "2"
+    - role: deploy-blue
+      when: haproxy.dict.blue.srv_op_state == "0" and haproxy.dict.green.srv_op_state == "0"
+            or
+            haproxy.dict.blue.srv_op_state == "2" and haproxy.dict.green.srv_op_state == "2"

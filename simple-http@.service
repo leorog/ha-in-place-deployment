@@ -1,0 +1,12 @@
+[Unit]
+Description=Simple Python3 HTTP server
+After=network.target
+
+[Service]
+PrivateTmp=true
+Type=simple
+PIDFile=/run/simple-http/%i.pid
+ExecStart=/usr/bin/python3 -m http.server %i
+
+[Install]
+WantedBy=multi-user.target
